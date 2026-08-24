@@ -15,10 +15,10 @@ function Register() {
 
     const name = formData.get("name");
     const email = formData.get("email");
+    const phone = formData.get("phone");
     const password = formData.get("password");
     const confirmPassword = formData.get("confirmPassword");
 
-    // Check passwords
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       setLoading(false);
@@ -27,7 +27,7 @@ function Register() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/register",
+        "http://localhost:5000/api/register",
         {
           method: "POST",
           headers: {
@@ -36,6 +36,7 @@ function Register() {
           body: JSON.stringify({
             name,
             email,
+            phone,
             password,
           }),
         }
@@ -44,16 +45,29 @@ function Register() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
+        throw new Error(
+          data.message || "Registration failed"
+        );
       }
 
-      console.log("Registration successful:", data);
+      console.log(
+        "Registration successful:",
+        data
+      );
 
       setRegistered(true);
+
     } catch (error) {
-      console.error("Registration error:", error);
+
+      console.error(
+        "Registration error:",
+        error
+      );
+
       setError(error.message);
+
     } finally {
+
       setLoading(false);
     }
   };
@@ -61,7 +75,7 @@ function Register() {
   return (
     <div className="home-page">
 
-      {/* ================= NAVBAR ================= */}
+      {/* NAVBAR */}
 
       <nav className="navbar">
 
@@ -70,11 +84,25 @@ function Register() {
         </a>
 
         <div className="nav-links">
+
           <a href="/">Home</a>
-          <a href="/services">Services</a>
-          <a href="/astrologer">Astrologer</a>
-          <a href="/booking">Booking</a>
-          <a href="/login">Login</a>
+
+          <a href="/services">
+            Services
+          </a>
+
+          <a href="/astrologer">
+            Astrologer
+          </a>
+
+          <a href="/booking">
+            Booking
+          </a>
+
+          <a href="/login">
+            Login
+          </a>
+
         </div>
 
         <a href="/login">
@@ -85,7 +113,7 @@ function Register() {
 
       </nav>
 
-      {/* ================= REGISTER SECTION ================= */}
+      {/* REGISTER SECTION */}
 
       <section
         style={{
@@ -106,9 +134,9 @@ function Register() {
           }}
         >
 
-          {/* ================= SUCCESS SCREEN ================= */}
-
           {registered ? (
+
+            /* SUCCESS */
 
             <div style={{ textAlign: "center" }}>
 
@@ -135,9 +163,15 @@ function Register() {
                 }}
               >
                 Welcome to{" "}
-                <span style={{ color: "#d9ad63" }}>
+
+                <span
+                  style={{
+                    color: "#d9ad63",
+                  }}
+                >
                   Shwetha Cosmic
                 </span>
+
               </h1>
 
               <p
@@ -147,14 +181,17 @@ function Register() {
                   marginBottom: "30px",
                 }}
               >
-                Your account has been created successfully.
-                You can now continue to your login page.
+                Your account has been created
+                successfully. You can now
+                continue to your login page.
               </p>
 
               <a href="/login">
+
                 <button className="primary-btn">
                   Continue to Login →
                 </button>
+
               </a>
 
             </div>
@@ -162,7 +199,8 @@ function Register() {
           ) : (
 
             <>
-              {/* ================= HEADER ================= */}
+
+              {/* HEADER */}
 
               <div
                 style={{
@@ -194,9 +232,15 @@ function Register() {
                   }}
                 >
                   Create{" "}
-                  <span style={{ color: "#d9ad63" }}>
+
+                  <span
+                    style={{
+                      color: "#d9ad63",
+                    }}
+                  >
                     Account
                   </span>
+
                 </h1>
 
                 <p
@@ -210,9 +254,10 @@ function Register() {
 
               </div>
 
-              {/* ================= ERROR MESSAGE ================= */}
+              {/* ERROR */}
 
               {error && (
+
                 <p
                   style={{
                     color: "#ff6b6b",
@@ -220,20 +265,26 @@ function Register() {
                     marginBottom: "20px",
                     padding: "10px",
                     borderRadius: "8px",
-                    background: "rgba(255, 107, 107, 0.08)",
+                    background:
+                      "rgba(255, 107, 107, 0.08)",
                   }}
                 >
                   {error}
                 </p>
+
               )}
 
-              {/* ================= FORM ================= */}
+              {/* FORM */}
 
               <form onSubmit={handleSubmit}>
 
-                {/* FULL NAME */}
+                {/* NAME */}
 
-                <div style={{ marginBottom: "20px" }}>
+                <div
+                  style={{
+                    marginBottom: "20px",
+                  }}
+                >
 
                   <label
                     htmlFor="name"
@@ -271,7 +322,11 @@ function Register() {
 
                 {/* EMAIL */}
 
-                <div style={{ marginBottom: "20px" }}>
+                <div
+                  style={{
+                    marginBottom: "20px",
+                  }}
+                >
 
                   <label
                     htmlFor="email"
@@ -309,7 +364,11 @@ function Register() {
 
                 {/* PHONE */}
 
-                <div style={{ marginBottom: "20px" }}>
+                <div
+                  style={{
+                    marginBottom: "20px",
+                  }}
+                >
 
                   <label
                     htmlFor="phone"
@@ -347,7 +406,11 @@ function Register() {
 
                 {/* PASSWORD */}
 
-                <div style={{ marginBottom: "20px" }}>
+                <div
+                  style={{
+                    marginBottom: "20px",
+                  }}
+                >
 
                   <label
                     htmlFor="password"
@@ -386,7 +449,11 @@ function Register() {
 
                 {/* CONFIRM PASSWORD */}
 
-                <div style={{ marginBottom: "28px" }}>
+                <div
+                  style={{
+                    marginBottom: "28px",
+                  }}
+                >
 
                   <label
                     htmlFor="confirmPassword"
@@ -423,7 +490,7 @@ function Register() {
 
                 </div>
 
-                {/* SUBMIT BUTTON */}
+                {/* BUTTON */}
 
                 <button
                   type="submit"
@@ -432,10 +499,12 @@ function Register() {
                   style={{
                     width: "100%",
                     padding: "16px",
-                    opacity: loading ? 0.7 : 1,
-                    cursor: loading
-                      ? "not-allowed"
-                      : "pointer",
+                    opacity:
+                      loading ? 0.7 : 1,
+                    cursor:
+                      loading
+                        ? "not-allowed"
+                        : "pointer",
                   }}
                 >
                   {loading
@@ -445,7 +514,7 @@ function Register() {
 
               </form>
 
-              {/* LOGIN LINK */}
+              {/* LOGIN */}
 
               <p
                 style={{
@@ -455,6 +524,7 @@ function Register() {
                   marginTop: "25px",
                 }}
               >
+
                 Already have an account?{" "}
 
                 <a
@@ -476,7 +546,7 @@ function Register() {
 
       </section>
 
-      {/* ================= FOOTER ================= */}
+      {/* FOOTER */}
 
       <footer>
 

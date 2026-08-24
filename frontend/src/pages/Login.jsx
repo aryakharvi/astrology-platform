@@ -1,24 +1,20 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 function Login() {
-  const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
     setError("");
     setLoading(true);
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/login",
+        "http://localhost:5000/api/login",
         {
           method: "POST",
           headers: {
@@ -33,28 +29,63 @@ function Login() {
 
       const data = await response.json();
 
+      console.log("LOGIN RESPONSE:", data);
+
       if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+        throw new Error(
+          data.message || "Login failed"
+        );
       }
 
-      console.log("Login successful:", data);
+      if (!data.token) {
+        throw new Error(
+          "Login successful, but no token was received."
+        );
+      }
 
-      // Save logged-in user
+      // Save JWT
       localStorage.setItem(
-        "user",
-        JSON.stringify(data.user)
+        "token",
+        data.token
       );
 
-      // Go to dashboard
-      navigate("/dashboard");
+      // Save user information
+      if (data.user) {
+        localStorage.setItem(
+          "user",
+          JSON.stringify(data.user)
+        );
+      }
 
-    } catch (error) {
-      console.error("Login error:", error);
+      console.log(
+        "USER SAVED:",
+        data.user
+      );
+
+      console.log(
+        "ROLE:",
+        data.user?.role
+      );
+
+      // ===============================
+      // ADMIN REDIRECT
+      // ===============================
+
+      if (data.user?.role === "admin") {
+        window.location.href = "/admin";
+      } else {
+        window.location.href = "/dashboard";
+      }
+
+    } catch (err) {
+      console.error(
+        "LOGIN ERROR:",
+        err
+      );
 
       setError(
-        error.message === "Failed to fetch"
-          ? "Cannot connect to the server. Make sure backend is running on port 5000."
-          : error.message
+        err.message ||
+          "Unable to login. Please make sure the backend server is running."
       );
     } finally {
       setLoading(false);
@@ -65,216 +96,361 @@ function Login() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#0b0712",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "30px",
-        boxSizing: "border-box",
-        color: "white",
+        background:
+          "radial-gradient(circle at top, #241442 0%, #0b0614 45%, #05030a 100%)",
+        color: "#fff",
+        paddingBottom: "60px",
       }}
     >
-      <div
+
+      {/* ================= NAVBAR ================= */}
+
+      <nav
         style={{
-          width: "100%",
-          maxWidth: "500px",
-          background: "#171020",
-          padding: "40px",
-          borderRadius: "20px",
-          boxSizing: "border-box",
-          boxShadow: "0 10px 40px rgba(0,0,0,0.4)",
+          height: "75px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 7%",
+          borderBottom:
+            "1px solid rgba(255,255,255,0.08)",
+          background:
+            "rgba(5,3,10,0.85)",
+          backdropFilter: "blur(15px)",
         }}
       >
-        {/* Logo */}
+
+        <a
+          href="/"
+          style={{
+            textDecoration: "none",
+            color: "#d9ad63",
+            fontSize: "21px",
+            fontFamily:
+              'Georgia, "Times New Roman", serif',
+          }}
+        >
+          🌙 Shwetha Cosmic
+        </a>
 
         <div
           style={{
-            textAlign: "center",
-            marginBottom: "35px",
+            display: "flex",
+            gap: "25px",
           }}
         >
+
+          <a href="/" style={navLink}>
+            Home
+          </a>
+
+          <a href="/services" style={navLink}>
+            Services
+          </a>
+
+          <a href="/astrologer" style={navLink}>
+            Astrologer
+          </a>
+
+          <a href="/booking" style={navLink}>
+            Booking
+          </a>
+
+          <a href="/register" style={navLink}>
+            Register
+          </a>
+
+        </div>
+      </nav>
+
+
+      {/* ================= LOGIN SECTION ================= */}
+
+      <section
+        style={{
+          minHeight:
+            "calc(100vh - 75px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "40px 20px",
+          boxSizing: "border-box",
+        }}
+      >
+
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "460px",
+            background:
+              "rgba(20,12,32,0.9)",
+            border:
+              "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "20px",
+            padding: "45px 35px",
+            boxShadow:
+              "0 20px 60px rgba(0,0,0,0.35)",
+          }}
+        >
+
+          {/* HEADER */}
+
           <div
             style={{
-              fontSize: "55px",
+              textAlign: "center",
+              marginBottom: "35px",
             }}
           >
-            ✨
+
+            <div
+              style={{
+                fontSize: "55px",
+                marginBottom: "12px",
+              }}
+            >
+              🌙
+            </div>
+
+            <p
+              style={{
+                color: "#d9ad63",
+                letterSpacing: "4px",
+                fontSize: "11px",
+                marginBottom: "12px",
+              }}
+            >
+              SHWETHA COSMIC
+            </p>
+
+            <h1
+              style={{
+                fontFamily:
+                  'Georgia, "Times New Roman", serif',
+                fontSize: "40px",
+                fontWeight: "500",
+                margin: 0,
+              }}
+            >
+              Welcome{" "}
+              <span
+                style={{
+                  color: "#d9ad63",
+                }}
+              >
+                Back
+              </span>
+            </h1>
+
+            <p
+              style={{
+                color: "#938a9f",
+                fontSize: "14px",
+                marginTop: "12px",
+              }}
+            >
+              Login to continue your
+              cosmic journey.
+            </p>
+
           </div>
 
-          <h1
-            style={{
-              margin: "5px 0",
-              color: "#ffffff",
-            }}
-          >
-            Shwetha Cosmic
-          </h1>
+
+          {/* ERROR */}
+
+          {error && (
+            <div
+              style={{
+                padding: "13px",
+                marginBottom: "20px",
+                borderRadius: "9px",
+                background:
+                  "rgba(255,80,80,0.1)",
+                border:
+                  "1px solid rgba(255,80,80,0.25)",
+                color: "#ff8585",
+                fontSize: "13px",
+                textAlign: "center",
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+
+          {/* FORM */}
+
+          <form onSubmit={handleSubmit}>
+
+            {/* EMAIL */}
+
+            <label style={labelStyle}>
+              EMAIL ADDRESS
+            </label>
+
+            <input
+              type="email"
+              value={email}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
+              placeholder="Enter your email"
+              required
+              autoComplete="email"
+              style={inputStyle}
+            />
+
+
+            {/* PASSWORD */}
+
+            <label style={labelStyle}>
+              PASSWORD
+            </label>
+
+            <input
+              type="password"
+              value={password}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+              placeholder="Enter your password"
+              required
+              autoComplete="current-password"
+              style={inputStyle}
+            />
+
+
+            {/* LOGIN BUTTON */}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "16px",
+                marginTop: "25px",
+                border: "none",
+                borderRadius: "10px",
+                background:
+                  "linear-gradient(135deg, #d9ad63, #b8893f)",
+                color: "#160d20",
+                fontWeight: "700",
+                fontSize: "15px",
+                cursor: loading
+                  ? "not-allowed"
+                  : "pointer",
+                opacity: loading
+                  ? 0.7
+                  : 1,
+              }}
+            >
+              {loading
+                ? "Logging in..."
+                : "Login ✨"}
+            </button>
+
+          </form>
+
+
+          {/* REGISTER */}
 
           <p
             style={{
-              color: "#aaa",
-              fontSize: "18px",
-            }}
-          >
-            Welcome back
-          </p>
-        </div>
-
-        {/* Error */}
-
-        {error && (
-          <div
-            style={{
-              background: "#4a1717",
-              color: "#ffb3b3",
-              padding: "14px",
-              borderRadius: "8px",
-              marginBottom: "20px",
               textAlign: "center",
+              color: "#938a9f",
+              fontSize: "13px",
+              marginTop: "25px",
             }}
           >
-            {error}
-          </div>
-        )}
+            Don't have an account?{" "}
 
-        {/* Login Form */}
-
-        <form onSubmit={handleLogin}>
-          {/* Email */}
-
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontSize: "16px",
-            }}
-          >
-            Email
-          </label>
-
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="Enter your email"
-            required
-            style={inputStyle}
-          />
-
-          {/* Password */}
-
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontSize: "16px",
-            }}
-          >
-            Password
-          </label>
-
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Enter your password"
-            required
-            style={inputStyle}
-          />
-
-          {/* Forgot Password */}
-
-          <div
-            style={{
-              textAlign: "right",
-              marginBottom: "25px",
-            }}
-          >
-            <span
+            <a
+              href="/register"
               style={{
                 color: "#d9ad63",
-                cursor: "pointer",
+                textDecoration: "none",
               }}
             >
-              Forgot Password?
-            </span>
-          </div>
+              Create Account
+            </a>
 
-          {/* Login Button */}
+          </p>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "16px",
-              border: "none",
-              borderRadius: "10px",
-              background: "#9b6cff",
-              color: "white",
-              fontSize: "18px",
-              fontWeight: "bold",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1,
-            }}
-          >
-            {loading ? "Logging in..." : "Login ✦"}
-          </button>
-        </form>
+        </div>
 
-        {/* Register */}
+      </section>
+
+
+      {/* FOOTER */}
+
+      <footer
+        style={{
+          textAlign: "center",
+          padding: "25px",
+          borderTop:
+            "1px solid rgba(255,255,255,0.08)",
+          color: "#777080",
+        }}
+      >
 
         <p
           style={{
-            textAlign: "center",
-            marginTop: "30px",
-            color: "#aaa",
+            color: "#d9ad63",
+            fontFamily:
+              'Georgia, "Times New Roman", serif',
           }}
         >
-          Don't have an account?{" "}
-          <span
-            onClick={() => navigate("/register")}
-            style={{
-              color: "#d9ad63",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            Create Account
-          </span>
+          🌙 Shwetha Cosmic
         </p>
 
-        {/* Home */}
+        <p>
+          Astrology • Guidance • Destiny
+        </p>
 
-        <button
-          onClick={() => navigate("/")}
+        <p
           style={{
-            display: "block",
-            margin: "20px auto 0",
-            background: "transparent",
-            border: "none",
-            color: "#aaa",
-            cursor: "pointer",
+            fontSize: "12px",
           }}
         >
-          ← Back to Home
-        </button>
-      </div>
+          © 2026 Shwetha Cosmic.
+          All rights reserved.
+        </p>
+
+      </footer>
+
     </div>
   );
 }
 
+
+const navLink = {
+  color: "#b8afc0",
+  textDecoration: "none",
+  fontSize: "14px",
+};
+
+
+const labelStyle = {
+  display: "block",
+  color: "#d9ad63",
+  fontSize: "11px",
+  letterSpacing: "1.5px",
+  marginTop: "20px",
+  marginBottom: "9px",
+};
+
+
 const inputStyle = {
   width: "100%",
-  padding: "14px",
-  marginBottom: "22px",
   boxSizing: "border-box",
-  background: "#0f0a16",
-  color: "white",
-  border: "1px solid #444",
-  borderRadius: "8px",
-  fontSize: "16px",
+  padding: "15px",
+  borderRadius: "9px",
+  border:
+    "1px solid rgba(255,255,255,0.1)",
+  background: "#0b0613",
+  color: "#fff",
   outline: "none",
+  fontSize: "14px",
 };
+
 
 export default Login;

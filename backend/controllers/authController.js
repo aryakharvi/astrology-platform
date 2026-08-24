@@ -1,7 +1,9 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 
-// ================= REGISTER =================
+// ==========================================
+// REGISTER
+// ==========================================
 
 const registerUser = async (req, res) => {
   try {
@@ -48,7 +50,9 @@ const registerUser = async (req, res) => {
   }
 };
 
-// ================= LOGIN =================
+// ==========================================
+// LOGIN
+// ==========================================
 
 const loginUser = async (req, res) => {
   try {
@@ -96,6 +100,10 @@ const loginUser = async (req, res) => {
     });
   }
 };
+
+// ==========================================
+// EXPORT
+// ==========================================
 
 module.exports = {
   registerUser,
