@@ -1,5 +1,6 @@
-```jsx
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+const API_BASE = "http://localhost:5000/api";
 
 function Admin() {
   const [users, setUsers] = useState([]);
@@ -9,20 +10,20 @@ function Admin() {
 
   const token = localStorage.getItem("token");
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
       const [usersResponse, astrologersResponse] =
         await Promise.all([
-          fetch("http://localhost:5000/api/users", {
+          fetch(`${API_BASE}/users`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }),
 
-          fetch("http://localhost:5000/api/astrologers"),
+          fetch(`${API_BASE}/astrologers`),
         ]);
 
       const usersData = await usersResponse.json();
@@ -37,15 +38,17 @@ function Admin() {
       if (!astrologersResponse.ok) {
         throw new Error(
           astrologersData.message ||
-            "Failed to load astrologers"
+          "Failed to load astrologers"
         );
       }
 
-      setUsers(usersData.users || usersData || []);
+      // /api/users returns a plain array; /api/astrologers
+      // returns { astrologers: [...] }
+      setUsers(Array.isArray(usersData) ? usersData : []);
       setAstrologers(
-        astrologersData.astrologers ||
-          astrologersData ||
-          []
+        Array.isArray(astrologersData)
+          ? astrologersData
+          : astrologersData.astrologers || []
       );
     } catch (err) {
       console.error("Admin dashboard error:", err);
@@ -53,7 +56,7 @@ function Admin() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (!token) {
@@ -63,10 +66,11 @@ function Admin() {
     }
 
     loadData();
-  }, [token]);
+  }, [token, loadData]);
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     window.location.href = "/login";
   };
 
@@ -152,11 +156,11 @@ function Admin() {
             value={
               astrologers.length
                 ? Math.max(
-                    ...astrologers.map(
-                      (astro) =>
-                        Number(astro.rating) || 0
-                    )
-                  ).toFixed(1)
+                  ...astrologers.map(
+                    (astro) =>
+                      Number(astro.rating) || 0
+                  )
+                ).toFixed(1)
                 : "0.0"
             }
           />
@@ -802,4 +806,3 @@ const styles = {
 };
 
 export default Admin;
-```

@@ -1,15 +1,70 @@
-﻿const express = require("express");
+require("dotenv").config();
+
+const express = require("express");
+const http = require("http");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const db = require("./db");
 
+const {
+  createBooking,
+  getMyBookings,
+  cancelBooking,
+  rescheduleBooking,
+  addReview,
+} = require("./controllers/bookingController");
+
+const {
+  getProfile,
+  updateProfile,
+  changePassword,
+} = require("./controllers/userController");
+
+const {
+  generateKundli,
+  saveKundli,
+  getMyKundlis,
+  getKundliById,
+  deleteKundli,
+} = require("./controllers/kundliController");
+
+const {
+  requireReader,
+  getStats,
+  getReaderBookings,
+  updateBookingStatus,
+  getReaderProfile,
+  updateReaderProfile,
+  getCustomers,
+  getCustomerDetail,
+  getAvailability,
+  saveAvailability,
+  getEarnings,
+  getReviews,
+} = require("./controllers/readerController");
+
+const {
+  getConsultation,
+  startConsultation,
+  joinConsultation,
+  endConsultation,
+  heartbeatConsultation,
+} = require("./controllers/consultationController");
+
+const {
+  getMyNotifications,
+  markNotificationsRead,
+} = require("./controllers/notificationController");
+
+const { initSocket } = require("./socket");
+
 const app = express();
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 const JWT_SECRET =
-  "shwetha_cosmic_secret_key_2026";
+  process.env.JWT_SECRET || "shwetha_cosmic_secret_key_2026";
 
 
 /* =====================================================
@@ -201,7 +256,7 @@ app.post(
           if (
             err &&
             err.code ===
-              "ER_DUP_ENTRY"
+            "ER_DUP_ENTRY"
           ) {
             return res.status(409).json({
               message:
@@ -473,58 +528,25 @@ app.get(
 
   authenticateToken,
 
-  (req, res) => {
+  getProfile
+);
 
-    const sql = `
-      SELECT
-        id,
-        name,
-        email,
-        phone,
-        role,
-        created_at
-      FROM users
-      WHERE id = ?
-      LIMIT 1
-    `;
+// Update profile (name, phone, birth details, picture)
+app.put(
+  "/api/profile",
 
-    db.query(
-      sql,
-      [req.user.id],
-      (err, results) => {
+  authenticateToken,
 
-        if (err) {
+  updateProfile
+);
 
-          console.error(
-            "Profile error:",
-            err.message
-          );
+// Change password
+app.put(
+  "/api/profile/password",
 
-          return res.status(500).json({
-            message:
-              "Failed to load profile.",
-          });
-        }
+  authenticateToken,
 
-        if (
-          results.length === 0
-        ) {
-          return res.status(404).json({
-            message:
-              "User not found.",
-          });
-        }
-
-        res.json({
-          message:
-            "Profile loaded successfully",
-
-          user:
-            results[0],
-        });
-      }
-    );
-  }
+  changePassword
 );
 
 
@@ -532,238 +554,49 @@ app.get(
    SAVE KUNDLI
 ===================================================== */
 
+// Generate Kundli (calculate only, not saved)
+app.post(
+  "/api/kundli/generate",
+
+  authenticateToken,
+
+  generateKundli
+);
+
+// Save Kundli (belongs to logged-in user)
 app.post(
   "/api/kundli",
 
   authenticateToken,
 
-  (req, res) => {
-
-    const {
-      dateOfBirth,
-      timeOfBirth,
-      placeOfBirth,
-      gender,
-    } = req.body;
-
-    if (
-      !dateOfBirth ||
-      !timeOfBirth ||
-      !placeOfBirth ||
-      !gender
-    ) {
-      return res.status(400).json({
-        message:
-          "All Kundli fields are required.",
-      });
-    }
-
-    const checkSql = `
-      SELECT id
-      FROM kundli
-      WHERE user_id = ?
-      LIMIT 1
-    `;
-
-    db.query(
-      checkSql,
-      [req.user.id],
-      (checkErr, existing) => {
-
-        if (checkErr) {
-
-          console.error(
-            "Kundli check error:",
-            checkErr.message
-          );
-
-          return res.status(500).json({
-            message:
-              "Failed to check Kundli.",
-          });
-        }
-
-
-        /* ============================
-           UPDATE
-        ============================ */
-
-        if (
-          existing.length > 0
-        ) {
-
-          const updateSql = `
-            UPDATE kundli
-            SET
-              date_of_birth = ?,
-              time_of_birth = ?,
-              place_of_birth = ?,
-              gender = ?
-            WHERE user_id = ?
-          `;
-
-          db.query(
-            updateSql,
-
-            [
-              dateOfBirth,
-              timeOfBirth,
-              placeOfBirth,
-              gender,
-              req.user.id,
-            ],
-
-            (err) => {
-
-              if (err) {
-
-                console.error(
-                  "Kundli update error:",
-                  err.message
-                );
-
-                return res.status(500).json({
-                  message:
-                    "Failed to update Kundli.",
-                });
-              }
-
-              res.json({
-                message:
-                  "Kundli updated successfully!",
-              });
-            }
-          );
-
-        } else {
-
-          /* ============================
-             INSERT
-          ============================ */
-
-          const insertSql = `
-            INSERT INTO kundli
-            (
-              user_id,
-              date_of_birth,
-              time_of_birth,
-              place_of_birth,
-              gender
-            )
-            VALUES (?, ?, ?, ?, ?)
-          `;
-
-          db.query(
-            insertSql,
-
-            [
-              req.user.id,
-              dateOfBirth,
-              timeOfBirth,
-              placeOfBirth,
-              gender,
-            ],
-
-            (err, result) => {
-
-              if (err) {
-
-                console.error(
-                  "Kundli insert error:",
-                  err.message
-                );
-
-                return res.status(500).json({
-                  message:
-                    "Failed to save Kundli.",
-                });
-              }
-
-              res.status(201).json({
-
-                message:
-                  "Kundli saved successfully!",
-
-                kundliId:
-                  result.insertId,
-
-              });
-            }
-          );
-        }
-      }
-    );
-  }
+  saveKundli
 );
 
-
-/* =====================================================
-   GET KUNDLI
-===================================================== */
-
+// Get my Kundlis (list)
 app.get(
   "/api/kundli",
 
   authenticateToken,
 
-  (req, res) => {
+  getMyKundlis
+);
 
-    const sql = `
-      SELECT
-        id,
-        user_id,
-        date_of_birth,
-        time_of_birth,
-        place_of_birth,
-        gender,
-        created_at
-      FROM kundli
-      WHERE user_id = ?
-      LIMIT 1
-    `;
+// Get one of my Kundlis (ownership-checked)
+app.get(
+  "/api/kundli/:id",
 
-    db.query(
-      sql,
-      [req.user.id],
-      (err, results) => {
+  authenticateToken,
 
-        if (err) {
+  getKundliById
+);
 
-          console.error(
-            "Kundli fetch error:",
-            err.message
-          );
+// Delete one of my Kundlis (ownership-checked)
+app.delete(
+  "/api/kundli/:id",
 
-          return res.status(500).json({
-            message:
-              "Failed to load Kundli.",
-          });
-        }
+  authenticateToken,
 
-        if (
-          results.length === 0
-        ) {
-
-          return res.json({
-            message:
-              "No Kundli found",
-
-            kundli:
-              null,
-          });
-        }
-
-        res.json({
-
-          message:
-            "Kundli loaded successfully",
-
-          kundli:
-            results[0],
-        });
-      }
-    );
-  }
+  deleteKundli
 );
 
 
@@ -896,6 +729,199 @@ app.get(
 
 
 /* =====================================================
+   BOOKINGS
+===================================================== */
+
+// Create a booking (auth required)
+app.post(
+  "/api/bookings",
+  authenticateToken,
+  createBooking
+);
+
+// Get my bookings (auth required)
+app.get(
+  "/api/bookings",
+  authenticateToken,
+  getMyBookings
+);
+
+// Cancel a booking (auth required)
+app.put(
+  "/api/bookings/:id/cancel",
+  authenticateToken,
+  cancelBooking
+);
+
+// Reschedule a booking (auth required)
+app.put(
+  "/api/bookings/:id/reschedule",
+  authenticateToken,
+  rescheduleBooking
+);
+
+// Review a completed booking (auth required, owner only)
+app.post(
+  "/api/bookings/:id/review",
+  authenticateToken,
+  addReview
+);
+
+
+/* =====================================================
+   CONSULTATIONS (real-time audio/video)
+   All routes behind authenticateToken.
+   Ownership + eligibility verified in the controller
+   (booking status, payment, reader assignment).
+===================================================== */
+
+// Get consultation context for a booking (owner or Shwetha)
+app.get(
+  "/api/consultations/:bookingId",
+  authenticateToken,
+  getConsultation
+);
+
+// Start consultation (Shwetha only)
+app.post(
+  "/api/consultations/:bookingId/start",
+  authenticateToken,
+  startConsultation
+);
+
+// Join consultation (customer owner or Shwetha)
+app.post(
+  "/api/consultations/:bookingId/join",
+  authenticateToken,
+  joinConsultation
+);
+
+// End consultation (customer owner or Shwetha)
+app.post(
+  "/api/consultations/:bookingId/end",
+  authenticateToken,
+  endConsultation
+);
+
+// Heartbeat (keeps session alive / detects reconnect)
+app.post(
+  "/api/consultations/:bookingId/heartbeat",
+  authenticateToken,
+  heartbeatConsultation
+);
+
+
+/* =====================================================
+   NOTIFICATIONS
+===================================================== */
+
+// Get my notifications
+app.get(
+  "/api/notifications",
+  authenticateToken,
+  getMyNotifications
+);
+
+// Mark notifications read
+app.put(
+  "/api/notifications/read",
+  authenticateToken,
+  markNotificationsRead
+);
+
+
+/* =====================================================
+   READER DASHBOARD API (Shwetha only)
+   All routes behind authenticateToken + requireReader
+===================================================== */
+
+// Stats / overview
+app.get(
+  "/api/reader/stats",
+  authenticateToken,
+  requireReader,
+  getStats
+);
+
+// All bookings (optional ?status=)
+app.get(
+  "/api/reader/bookings",
+  authenticateToken,
+  requireReader,
+  getReaderBookings
+);
+
+// Update booking status (accept / reject / complete / cancel)
+app.put(
+  "/api/reader/bookings/:id/status",
+  authenticateToken,
+  requireReader,
+  updateBookingStatus
+);
+
+// Reader profile
+app.get(
+  "/api/reader/profile",
+  authenticateToken,
+  requireReader,
+  getReaderProfile
+);
+
+app.put(
+  "/api/reader/profile",
+  authenticateToken,
+  requireReader,
+  updateReaderProfile
+);
+
+// Customers
+app.get(
+  "/api/reader/customers",
+  authenticateToken,
+  requireReader,
+  getCustomers
+);
+
+app.get(
+  "/api/reader/customers/:id",
+  authenticateToken,
+  requireReader,
+  getCustomerDetail
+);
+
+// Availability
+app.get(
+  "/api/reader/availability",
+  authenticateToken,
+  requireReader,
+  getAvailability
+);
+
+app.put(
+  "/api/reader/availability",
+  authenticateToken,
+  requireReader,
+  saveAvailability
+);
+
+// Earnings
+app.get(
+  "/api/reader/earnings",
+  authenticateToken,
+  requireReader,
+  getEarnings
+);
+
+// Reviews
+app.get(
+  "/api/reader/reviews",
+  authenticateToken,
+  requireReader,
+  getReviews
+);
+
+
+/* =====================================================
    404
 ===================================================== */
 
@@ -931,15 +957,24 @@ app.use(
 
 
 /* =====================================================
-   START SERVER
+   START SERVER (HTTP + Socket.IO)
 ===================================================== */
 
-app.listen(
+const httpServer = http.createServer(app);
+
+// Attach JWT-authenticated Socket.IO signaling
+initSocket(httpServer);
+
+httpServer.listen(
   PORT,
   () => {
 
     console.log(
       `MySQL API server running on http://localhost:${PORT}`
+    );
+
+    console.log(
+      `Socket.IO signaling ready on ws://localhost:${PORT}`
     );
 
   }

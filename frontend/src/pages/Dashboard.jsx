@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import MyBookings from "../components/MyBookings";
+
 function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -547,6 +549,16 @@ function Dashboard() {
               link="/services"
             />
           </div>
+        </section>
+
+        {/* ================= MY BOOKINGS ================= */}
+
+        <section
+          style={{
+            marginTop: "60px",
+          }}
+        >
+          <MyBookings />
         </section>
       </main>
 

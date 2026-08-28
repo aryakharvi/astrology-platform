@@ -9,7 +9,11 @@ import Astrologer from "./pages/Astrologer";
 import Booking from "./pages/Booking";
 import Profile from "./pages/Profile";
 import Kundli from "./pages/kundli";
-import AdminDashboard from "./pages/AdminDashboard";
+import KundliResult from "./pages/KundliResult";
+import MyKundlis from "./pages/MyKundlis";
+import Admin from "./pages/Admin";
+import ReaderDashboard from "./pages/ReaderDashboard";
+import VideoCallPage from "./pages/VideoCall";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -62,6 +66,24 @@ function App() {
           }
         />
 
+        <Route
+          path="/kundli/:id"
+          element={
+            <ProtectedRoute>
+              <KundliResult />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/my-kundlis"
+          element={
+            <ProtectedRoute>
+              <MyKundlis />
+            </ProtectedRoute>
+          }
+        />
+
 
         {/* ================= ADMIN ROUTE ================= */}
 
@@ -69,7 +91,25 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute adminOnly>
-              <AdminDashboard />
+              <Admin />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reader-dashboard"
+          element={
+            <ProtectedRoute adminOnly>
+              <ReaderDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/consultation/:bookingId"
+          element={
+            <ProtectedRoute>
+              <VideoCallPage />
             </ProtectedRoute>
           }
         />

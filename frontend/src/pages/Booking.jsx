@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const API_BASE = "http://localhost:5000/api";
 
 function Booking() {
+  const [callType, setCallType] = useState("video");
+  const [durationMinutes, setDurationMinutes] = useState(30);
+
   const [selectedService, setSelectedService] =
     useState("Personal Consultation");
 
@@ -12,6 +17,16 @@ function Booking() {
 
   const [submitted, setSubmitted] =
     useState(false);
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [error, setError] = useState("");
+
+  const [selectedAstrologer, setSelectedAstrologer] =
+    useState(null);
+
+  const [bookingId, setBookingId] = useState(null);
 
   const services = [
     "Personal Consultation",
@@ -32,7 +47,26 @@ function Booking() {
     "7:00 PM",
   ];
 
-  const handleSubmit = (e) => {
+  // Load astrologer chosen on the Astrologer page (if any)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("selectedAstrologer");
+      if (saved) {
+        const astro = JSON.parse(saved);
+        setSelectedAstrologer(astro);
+
+        // Default the consultation type to that astrologer's
+        // specialization if it matches a service option
+        if (astro?.specialization) {
+          setSelectedService(astro.specialization);
+        }
+      }
+    } catch (e) {
+      console.error("Astrologer selection error:", e);
+    }
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!selectedDate || !selectedTime) {
@@ -40,7 +74,52 @@ function Booking() {
       return;
     }
 
-    setSubmitted(true);
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login to confirm your booking.");
+      window.location.href = "/login";
+      return;
+    }
+
+    setError("");
+    setSubmitting(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/bookings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          astrologer_id: selectedAstrologer?.id || null,
+          service: selectedService,
+          booking_date: selectedDate,
+          booking_time: selectedTime,
+          amount: selectedAstrologer?.price_per_minute || 0,
+          call_type: callType,
+          duration_minutes: durationMinutes,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to create booking");
+      }
+
+      setBookingId(data.bookingId || null);
+      setSubmitted(true);
+
+      // Clear the astrologer selection once booked
+      localStorage.removeItem("selectedAstrologer");
+    } catch (err) {
+      console.error("Booking error:", err);
+      setError(err.message || "Unable to create booking.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -138,7 +217,7 @@ function Booking() {
                   marginBottom: "18px",
                 }}
               >
-                Booking Request Received
+                Booking Confirmed ✨
               </h2>
 
               <p
@@ -149,7 +228,7 @@ function Booking() {
                 }}
               >
                 Thank you for choosing Shwetha Cosmic.
-                Your consultation request has been recorded.
+                Your consultation has been booked successfully.
               </p>
 
               <div
@@ -161,9 +240,21 @@ function Booking() {
                 }}
               >
 
+                {bookingId && (
+                  <p style={{ marginBottom: "10px" }}>
+                    <strong>Booking ID:</strong>{" "}
+                    #{bookingId}
+                  </p>
+                )}
+
                 <p style={{ marginBottom: "10px" }}>
                   <strong>Service:</strong>{" "}
                   {selectedService}
+                </p>
+
+                <p style={{ marginBottom: "10px" }}>
+                  <strong>Astrologer:</strong>{" "}
+                  {selectedAstrologer?.name || "Shwetha Cosmic"}
                 </p>
 
                 <p style={{ marginBottom: "10px" }}>
@@ -176,11 +267,38 @@ function Booking() {
                   {selectedTime}
                 </p>
 
+                <p style={{ marginBottom: "10px" }}>
+                  <strong>Mode:</strong>{" "}
+                  {callType === "audio" ? "🎙️ Audio Call" : "🎥 Video Call"}
+                </p>
+
+                <p>
+                  <strong>Duration:</strong>{" "}
+                  {durationMinutes} minutes
+                </p>
+
               </div>
 
-              <button
+              <a
+                href="/dashboard"
                 className="primary-btn"
-                onClick={() => setSubmitted(false)}
+                style={{
+                  display: "inline-block",
+                  textDecoration: "none",
+                }}
+              >
+                View My Bookings
+              </a>
+
+              <button
+                className="secondary-btn"
+                onClick={() => {
+                  setSubmitted(false);
+                  setBookingId(null);
+                }}
+                style={{
+                  marginLeft: "12px",
+                }}
               >
                 Make Another Booking
               </button>
@@ -253,6 +371,120 @@ function Booking() {
 
                   ))}
 
+                </div>
+
+              </div>
+
+              {/* CONSULTATION TYPE (Video / Audio) */}
+              <div style={{ marginBottom: "30px" }}>
+
+                <label
+                  style={{
+                    display: "block",
+                    color: "#d9ad63",
+                    marginBottom: "12px",
+                    fontSize: "13px",
+                    letterSpacing: "1px",
+                  }}
+                >
+                  CONSULTATION MODE
+                </label>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: "12px",
+                  }}
+                >
+                  {[
+                    { key: "video", icon: "🎥", label: "Video Call", desc: "Camera + mic" },
+                    { key: "audio", icon: "🎙️", label: "Audio Call", desc: "Voice only" },
+                  ].map((mode) => (
+                    <button
+                      type="button"
+                      key={mode.key}
+                      onClick={() => setCallType(mode.key)}
+                      style={{
+                        padding: "16px",
+                        borderRadius: "10px",
+                        border:
+                          callType === mode.key
+                            ? "1px solid #d9ad63"
+                            : "1px solid rgba(255,255,255,0.1)",
+                        background:
+                          callType === mode.key
+                            ? "rgba(217,173,99,0.12)"
+                            : "#130c20",
+                        color:
+                          callType === mode.key
+                            ? "#d9ad63"
+                            : "#aaa3b2",
+                        cursor: "pointer",
+                        textAlign: "left",
+                      }}
+                    >
+                      <div style={{ fontSize: "24px", marginBottom: "8px" }}>
+                        {mode.icon}
+                      </div>
+                      <strong style={{ display: "block", marginBottom: "4px" }}>
+                        {mode.label}
+                      </strong>
+                      <small style={{ color: "#777080" }}>{mode.desc}</small>
+                    </button>
+                  ))}
+                </div>
+
+              </div>
+
+              {/* DURATION */}
+              <div style={{ marginBottom: "30px" }}>
+
+                <label
+                  style={{
+                    display: "block",
+                    color: "#d9ad63",
+                    marginBottom: "12px",
+                    fontSize: "13px",
+                    letterSpacing: "1px",
+                  }}
+                >
+                  DURATION
+                </label>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+                    gap: "10px",
+                  }}
+                >
+                  {[15, 30, 45, 60].map((minutes) => (
+                    <button
+                      type="button"
+                      key={minutes}
+                      onClick={() => setDurationMinutes(minutes)}
+                      style={{
+                        padding: "14px",
+                        borderRadius: "10px",
+                        border:
+                          durationMinutes === minutes
+                            ? "1px solid #d9ad63"
+                            : "1px solid rgba(255,255,255,0.1)",
+                        background:
+                          durationMinutes === minutes
+                            ? "rgba(217,173,99,0.12)"
+                            : "#130c20",
+                        color:
+                          durationMinutes === minutes
+                            ? "#d9ad63"
+                            : "#aaa3b2",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {minutes} min
+                    </button>
+                  ))}
                 </div>
 
               </div>
@@ -472,16 +704,34 @@ function Booking() {
 
               </div>
 
+              {/* ERROR */}
+              {error && (
+                <p
+                  style={{
+                    textAlign: "center",
+                    color: "#ff8585",
+                    fontSize: "13px",
+                    marginBottom: "15px",
+                  }}
+                >
+                  ⚠️ {error}
+                </p>
+              )}
+
               {/* SUBMIT */}
               <button
                 type="submit"
                 className="primary-btn"
+                disabled={submitting}
                 style={{
                   width: "100%",
                   padding: "17px",
+                  opacity: submitting ? 0.7 : 1,
                 }}
               >
-                Confirm Booking ✦
+                {submitting
+                  ? "Confirming..."
+                  : "Confirm Booking ✦"}
               </button>
 
               <p
